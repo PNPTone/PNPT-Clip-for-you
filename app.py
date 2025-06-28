@@ -23,6 +23,8 @@ if st.button("Создать видео") and prompt and music_file:
             with open(f"frames/frame{i}.png", "wb") as f:
                 f.write(img_data)
 
+        music_file.seek(0)
+        
         with open("temp_music.mp3", "wb") as f:
             f.write(music_file.read())
 
