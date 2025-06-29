@@ -7,7 +7,7 @@ import os
 st.title("🖼️ PNPT Free Clip – Визуал по описанию (через Hugging Face, исправлено)")
 
 prompt = st.text_area("🎬 Опиши идею клипа:")
-HF_TOKEN = "вставь_сюда_токен"
+HF_TOKEN = "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"
 
 def generate_image(prompt):
     api_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
