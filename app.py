@@ -1,13 +1,31 @@
 import streamlit as st
+import openai
+import os
+import requests
+import subprocess
 
-st.title("🔊 Тест загрузки MP3-файла")
+# Введите ваш API-ключ OpenAI
+openai.api_key = "вставь_сюда_свой_API_ключ"
 
-music_file = st.file_uploader("🎵 Загрузите MP3", type=["mp3"])
+st.title("🖼️ PNPT Clip – Визуал по описанию (без звука)")
 
-if music_file is not None:
-    st.success("✅ Файл получен!")
-    st.write(f"**Имя файла:** {music_file.name}")
-    st.write(f"**Размер:** {round(len(music_file.read()) / 1024, 2)} KB")
+prompt = st.text_area("🎬 Опиши идею клипа:")
 
-    music_file.seek(0)
-    st.audio(music_file, format='audio/mp3')
+if st.button("Создать визуал") and prompt:
+    with st.spinner("🎨 Генерируем изображения..."):
+        response = openai.Image.create(prompt=prompt, n=5, size="512x512")
+        urls = [img["url"] for img in response['data']]
+
+        os.makedirs("frames", exist_ok=True)
+        for i, url in enumerate(urls):
+            img_data = requests.get(url).content
+            with open(f"frames/frame{i}.png", "wb") as f:
+                f.write(img_data)
+
+        subprocess.call(
+            "ffmpeg -y -r 1 -i frames/frame%01d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p output.mp4",
+            shell=True
+        )
+
+        st.success("✅ Визуал готов!")
+        st.video("output.mp4")
