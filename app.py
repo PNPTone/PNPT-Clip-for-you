@@ -1,31 +1,39 @@
 import streamlit as st
-import openai
-import os
 import requests
+import base64
+import os
 import subprocess
 
-# Введите ваш API-ключ OpenAI
-openai.api_key = "вставь_сюда_свой_API_ключ"
-
-st.title("🖼️ PNPT Clip – Визуал по описанию (без звука)")
+st.title("🖼️ PNPT Free Clip – Визуал по описанию (через Hugging Face)")
 
 prompt = st.text_area("🎬 Опиши идею клипа:")
+HF_TOKEN = st.secrets["HF_TOKEN"] if "HF_TOKEN" in st.secrets else "вставь_сюда_токен"
+
+def generate_image(prompt):
+    api_url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {"inputs": prompt}
+
+    response = requests.post(api_url, headers=headers, json=payload)
+    if response.status_code == 200:
+        with open("generated.png", "wb") as f:
+            f.write(response.content)
+        return "generated.png"
+    else:
+        st.error("Ошибка генерации: " + response.text)
+        return None
 
 if st.button("Создать визуал") and prompt:
-    with st.spinner("🎨 Генерируем изображения..."):
-        response = openai.Image.create(prompt=prompt, n=5, size="512x512")
-        urls = [img["url"] for img in response['data']]
+    with st.spinner("🎨 Генерируем изображение..."):
+        img_path = generate_image(prompt)
+        if img_path:
+            st.image(img_path, caption="Сгенерировано AI")
 
-        os.makedirs("frames", exist_ok=True)
-        for i, url in enumerate(urls):
-            img_data = requests.get(url).content
-            with open(f"frames/frame{i}.png", "wb") as f:
-                f.write(img_data)
+            # создаем видео из одного изображения
+            subprocess.call(
+                "ffmpeg -y -loop 1 -i generated.png -c:v libx264 -t 5 -pix_fmt yuv420p output.mp4",
+                shell=True
+            )
 
-        subprocess.call(
-            "ffmpeg -y -r 1 -i frames/frame%01d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p output.mp4",
-            shell=True
-        )
-
-        st.success("✅ Визуал готов!")
-        st.video("output.mp4")
+            st.success("✅ Видео готово!")
+            st.video("output.mp4")
